@@ -26,3 +26,5 @@ func fizzBuzz(n: Int) -> Void {
     }
     
 }
+
+fizzBuzz(n: 15)
