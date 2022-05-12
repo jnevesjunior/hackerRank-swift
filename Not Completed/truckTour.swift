@@ -1,7 +1,5 @@
 import Foundation
 
-
-
 /*
  * Complete the 'truckTour' function below.
  *
