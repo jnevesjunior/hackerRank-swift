@@ -47,7 +47,7 @@ func pickingNumbers(a: [Int]) -> Int {
         }
     }
     
-    if biggestSequence == 0 || biggestSequence < biggestCountOfSameNumber {
+    if biggestSequence < biggestCountOfSameNumber {
         biggestSequence = biggestCountOfSameNumber
     }
     
