@@ -55,7 +55,6 @@ func binarySearch(list: [Int], value: Int) -> Bool {
     if middleValue == value {
         return true
     } else if middleValue < value {
-        print(Array(list[middleIndex + 1...lastIndex]))
         return binarySearch(
             list: Array(list[middleIndex + 1...lastIndex]), 
             value: value

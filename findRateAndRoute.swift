@@ -16,100 +16,85 @@ import Foundation
  */
 
 func findRateAndRoute(for currencyPair: String, rates: [String: Decimal]) -> (rate: Decimal, route: String) {
-    let startCurrency = getFirstCurrency(currencyPair)
-    let lastCurrency = getLastCurrency(currencyPair)
     
-    var paths = [String: Decimal]()
-    var pathsToCalc = [String: Decimal]()
-    rates.filter {
-        return getFirstCurrency($0.key) == startCurrency
-    }.forEach { rate in 
-        paths[startCurrency + getLastCurrency(rate.key)] = rate.value
-    }
+    let firstCurrency = firstCurrencyFromPair(currencyPair)
+    let endCurrency = lastCurrencyFromPair(currencyPair)
+    var currencyPairs = getCurrencyPairsListStating(with: firstCurrency, rates: rates)
+    var listToCheck = currencyPairs
     
-    var needToCalcAnotherLevel = true
-    while needToCalcAnotherLevel {
-        var filteradRates = [String: Decimal]()
-        for path in paths { 
-            filteradRates = rates.filter { rate in
-                getFirstCurrency(rate.key) == getLastCurrency(path.key)
-            }
-        }
+    var possibleRoute = ""
+    var possibleRate: Decimal = 0
+    
+    while listToCheck.count > 0 {
         
-        if filteradRates.count == 0 {
-            needToCalcAnotherLevel = false
-            continue
-        }
+        let key = Array(listToCheck.keys)[0]
         
-        var keyToRemove = ""
-        for filteradRate in filteradRates {
-            let filteradRatePath = filteradRate.key
-            let currentLastCurrency = String(filteradRatePath.dropLast(3))
+        let nextPairs = getCurrencyPairsListStating(with: lastCurrencyFromPair(key), rates: rates)
+        let previousRate = currencyPairs[key] ?? 0
+        nextPairs.forEach { nextPair in
             
-            paths.forEach { path in
-                if getLastCurrency(path.key) != currentLastCurrency {
-                    return
+            let lastCurrency = lastCurrencyFromPair(nextPair.key)
+            
+            let newKey = key + lastCurrency
+            let newRate = nextPair.value * previousRate ?? 0
+            
+            if lastCurrency == endCurrency {
+                if possibleRoute == "" || newKey.count < possibleRoute.count {
+                    possibleRoute = newKey
+                    possibleRate = newRate
                 }
-                
-                let currentPath = path
-                keyToRemove = path.key
-                
-                let newLastCurrency = getLastCurrency(filteradRatePath)
-                let newKey = currentPath.key + newLastCurrency
-                let newValue = currentPath.value * filteradRate.value
-                if newLastCurrency == lastCurrency {
-                    pathsToCalc[newKey] = newValue
-                } else {
-                    paths[newKey] = newValue
-                }
+            } else {
+                currencyPairs[newKey] = newRate
+                listToCheck[newKey] = newRate
             }
         }
-        
-        if let index = paths.index(forKey: keyToRemove) {
-            paths.remove(at: index)
-        } 
+        currencyPairs.removeValue(forKey: key)
+        listToCheck.removeValue(forKey: key)
     }
     
-    if let path = pathsToCalc.sorted { $0.value < $1.value }.first {
-        if let decimal = Decimal(string: String(format: "%.4f", Double(path.value as NSNumber))) {
-            return (rate: decimal, route: path.key)    
-        }
-        return (rate: path.value, route: path.key)    
+    return (
+        rate: Decimal(string: String(format: "%.4f", Double(possibleRate as NSNumber))) ?? 0,
+        route: possibleRoute
+    )
+}
+
+func getCurrencyPairsListStating(with currency: String, rates: [String: Decimal]) -> [String: Decimal] {
+    rates.filter {
+        currency == firstCurrencyFromPair($0.key)
     }
-    return (rate: 0.0, route: "")
 }
 
-func getFirstCurrency(_ currency: String) -> String {
-    return String(currency.prefix(3))
+func firstCurrencyFromPair(_ currencyPair: String) -> String {
+    String(currencyPair.prefix(3))
 }
 
-func getLastCurrency(_ currency: String) -> String {
-    return String(currency.suffix(3))
+func lastCurrencyFromPair(_ currencyPair: String) -> String {
+    String(currencyPair.suffix(3))
 }
 
-let result = findRateAndRoute(for: "GELHKD", rates: ["CRCSEK": 0.0146, 
-                                                    "GMDJMD": 2.9725, 
-                                                    "SVCGMD": 6.005, 
+let result = findRateAndRoute(for: "GELHKD", rates: ["CRCSEK": 0.0146,
+                                                    "GMDJMD": 2.9725,
+                                                    "SVCGMD": 6.005,
                                                     "TOPRUB": 34.1588,
-                                                     "GMDCRC": 12.1763, 
-                                                     "EGPGMD": 3.3421, 
-                                                     "SEKGHS": 0.6644, 
-                                                     "CRCTOP": 0.0036, 
-                                                     "GHSHKD": 1.2504, 
-                                                     "EGPSVC": 0.5566, 
-                                                     "JMDCRC": 4.0963, 
-                                                     "IDREGP": 0.0011, 
-                                                     "GELEGP": 5.1432, 
-                                                     "GELIDR": 4692.8022, 
-                                                     "SEKHKD": 0.8307, 
+                                                     "GMDCRC": 12.1763,
+                                                     "EGPGMD": 3.3421,
+                                                     "SEKGHS": 0.6644,
+                                                     "CRCTOP": 0.0036,
+                                                     "GHSHKD": 1.2504,
+                                                     "EGPSVC": 0.5566,
+                                                     "JMDCRC": 4.0963,
+                                                     "IDREGP": 0.0011,
+                                                     "GELEGP": 5.1432,
+                                                     "GELIDR": 4692.8022,
+                                                     "SEKHKD": 0.8307,
                                                      "RUBSEK": 0.1207])
-print(result, result == (rate: 2.5384, route: "GELEGPGMDJMDCRCSEKHKD"))
+print(result, result == (rate: 2.5384, route: "GELEGPGMDCRCSEKHKD"))
 
-let result2 = findRateAndRoute(for: "NPRPHP", rates: ["NPRMUR": 0.3649, 
+let result2 = findRateAndRoute(for: "NPRPHP", rates: ["NPRMUR": 0.3649,
                                                     "TZSPHP": 0.0222,
                                                     "MURTZS": 52.6165,
-                                                    "THBCUC": 0.0301, 
-                                                    "BTNTHB": 0.4421, 
-                                                    "MURBTN": 1.7129, 
+                                                    "THBCUC": 0.0301,
+                                                    "BTNTHB": 0.4421,
+                                                    "MURBTN": 1.7129,
                                                     "CUCTZS": 2309.4526])
 print(result2, result2 == (rate: 0.4262, route: "NPRMURTZSPHP"))
